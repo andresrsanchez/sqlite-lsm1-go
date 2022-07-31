@@ -278,6 +278,8 @@ func (l *LSMTable) Tx(fn func() error) error {
 		}
 		return err
 	}
+	l.mu.Lock() //how bad
+	defer l.mu.Unlock()
 	ok = C.lsm_commit(l.db, 0)
 	if ok != C.LSM_OK {
 		return getError(ok)
