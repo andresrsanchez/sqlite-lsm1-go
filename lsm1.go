@@ -7,6 +7,7 @@ package lsm1
 import "C"
 import (
 	"fmt"
+	"sync"
 	"unsafe"
 )
 
@@ -14,6 +15,7 @@ type LSMTable struct {
 	db            *C.lsm_db
 	isOpen        bool
 	ntransactions int
+	mu            sync.Mutex
 }
 
 var errMSG map[C.int]string = map[C.int]string{
@@ -66,6 +68,8 @@ func (l *LSMTable) Close() error {
 }
 
 func (l *LSMTable) Insert(k, v string) error {
+	l.mu.Lock() //HOW TO AVOID THIS???, double frees
+	defer l.mu.Unlock()
 	var ck *C.char = C.CString(k)
 	var cv *C.char = C.CString(v)
 	ckp := unsafe.Pointer(ck)
