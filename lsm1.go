@@ -68,11 +68,13 @@ func (l *LSMTable) Close() error {
 func (l *LSMTable) Insert(k, v string) error {
 	var ck *C.char = C.CString(k)
 	var cv *C.char = C.CString(v)
+	ckp := unsafe.Pointer(ck)
+	ckv := unsafe.Pointer(cv)
 	defer func() {
-		C.free(unsafe.Pointer(ck))
-		C.free(unsafe.Pointer(cv))
+		C.free(ckp)
+		C.free(ckv)
 	}()
-	ok := C.lsm_insert(l.db, unsafe.Pointer(ck), C.int(len(k)), unsafe.Pointer(cv), C.int(len(v)))
+	ok := C.lsm_insert(l.db, ckp, C.int(len(k)), ckv, C.int(len(v)))
 	if ok != C.LSM_OK {
 		return getError(ok)
 	}
