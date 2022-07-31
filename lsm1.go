@@ -259,38 +259,64 @@ func (l *LSMTable) Flush() error {
 	return nil
 }
 
-func (l *LSMTable) Begin() error {
-	if l.ntransactions < 0 { //lol
-		l.ntransactions = 0
+func (l *LSMTable) Tx(fn func() error) error {
+	ok := C.lsm_begin(l.db, 1)
+	if ok != C.LSM_OK {
+		return getError(ok)
 	}
-	l.ntransactions += 1
-	ok := C.lsm_begin(l.db, C.int(l.ntransactions))
+	err := fn()
+	if err != nil {
+		ok := C.lsm_rollback(l.db, 0)
+		if ok != C.LSM_OK {
+			return getError(ok) //improve
+		}
+		return err
+	}
+	ok = C.lsm_commit(l.db, 0)
 	if ok != C.LSM_OK {
 		return getError(ok)
 	}
 	return nil
 }
 
-func (l *LSMTable) Commit() error {
-	if l.ntransactions < 0 {
-		return fmt.Errorf("no transactions on course")
-	}
-	l.ntransactions -= 1
-	ok := C.lsm_commit(l.db, C.int(l.ntransactions))
-	if ok != C.LSM_OK {
-		return getError(ok)
-	}
-	return nil
-}
+// func (l *LSMTable) Begin() error {
+// 	if l.ntransactions < 0 {
+// 		l.ntransactions = 0
+// 	}
+// 	l.ntransactions += 1
+// 	ok := C.lsm_begin(l.db, C.int(l.ntransactions))
+// 	if ok != C.LSM_OK {
+// 		return getError(ok)
+// 	}
+// 	return nil
+// }
 
-func (l *LSMTable) Rollback() error {
-	if l.ntransactions < 0 {
-		return fmt.Errorf("no transactions on course")
-	}
-	l.ntransactions -= 1
-	ok := C.lsm_rollback(l.db, C.int(l.ntransactions))
-	if ok != C.LSM_OK {
-		return getError(ok)
-	}
-	return nil
-}
+// type Tx struct {
+// 	db *C.lsm_db
+// }
+
+// func (l *Tx) Commit() error {
+// 	// if l.ntransactions < 0 {
+// 	// 	return fmt.Errorf("no transactions on course")
+// 	// }
+// 	// if l.ntransactions > 0 {
+// 	// 	l.ntransactions -= 1
+// 	// }
+// 	ok := C.lsm_commit(l.db, 0)
+// 	if ok != C.LSM_OK {
+// 		return getError(ok)
+// 	}
+// 	return nil
+// }
+
+// func (l *Tx) Rollback() error {
+// 	// if l.ntransactions < 0 {
+// 	// 	return fmt.Errorf("no transactions on course")
+// 	// }
+// 	// l.ntransactions -= 1
+// 	ok := C.lsm_rollback(l.db, 1)
+// 	if ok != C.LSM_OK {
+// 		return getError(ok)
+// 	}
+// 	return nil
+// }
