@@ -68,8 +68,8 @@ func (l *LSMTable) Close() error {
 }
 
 func (l *LSMTable) Insert(k, v string) error {
-	l.mu.Lock() //HOW TO AVOID THIS???, double frees
-	defer l.mu.Unlock()
+	// l.mu.Lock() //HOW TO AVOID THIS???, double frees
+	// defer l.mu.Unlock()
 	var ck *C.char = C.CString(k)
 	var cv *C.char = C.CString(v)
 	ckp := unsafe.Pointer(ck)
@@ -266,6 +266,8 @@ func (l *LSMTable) Flush() error {
 }
 
 func (l *LSMTable) Tx(fn func() error) error {
+	l.mu.Lock() //how bad
+	defer l.mu.Unlock()
 	ok := C.lsm_begin(l.db, 1)
 	if ok != C.LSM_OK {
 		return getError(ok)
@@ -278,8 +280,6 @@ func (l *LSMTable) Tx(fn func() error) error {
 		}
 		return err
 	}
-	l.mu.Lock() //how bad
-	defer l.mu.Unlock()
 	ok = C.lsm_commit(l.db, 0)
 	if ok != C.LSM_OK {
 		return getError(ok)
