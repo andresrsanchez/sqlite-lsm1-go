@@ -612,6 +612,7 @@ func TestTxLSM(t *testing.T) {
 
 func TestBatchTxLSM(t *testing.T) {
 	lsm, _ := OpenLSM("test")
+	defer remove(lsm)
 	m := make(map[string]string)
 	for i := 0; i < 1000; i++ {
 		k := rand.Int() % int(10*1000000)

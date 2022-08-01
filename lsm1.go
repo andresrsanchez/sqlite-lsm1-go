@@ -3,6 +3,10 @@ package lsm1
 /*
 #include "lsm.h"
 #include <stdlib.h>
+
+static int _lsm_config(lsm_db *pDb, int eParam, int *eParamVal) {
+	return lsm_config(pDb, eParam, eParamVal);
+}
 */
 import "C"
 import (
@@ -48,6 +52,11 @@ func OpenLSM(name string) (*LSMTable, error) {
 	}
 	cn := C.CString(name)
 	defer C.free(unsafe.Pointer(cn))
+	var safety C.int = C.LSM_SAFETY_OFF
+	ok = C._lsm_config(db, C.LSM_CONFIG_SAFETY, &safety)
+	if ok != C.LSM_OK {
+		return nil, getError(ok)
+	}
 	ok = C.lsm_open(db, cn)
 	if ok != C.LSM_OK {
 		return nil, getError(ok)
@@ -68,8 +77,6 @@ func (l *LSMTable) Close() error {
 }
 
 func (l *LSMTable) Insert(k, v string) error {
-	// l.mu.Lock() //HOW TO AVOID THIS???, double frees
-	// defer l.mu.Unlock()
 	var ck *C.char = C.CString(k)
 	var cv *C.char = C.CString(v)
 	ckp := unsafe.Pointer(ck)
